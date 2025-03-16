@@ -1,0 +1,51 @@
+name: SnowBallFight
+version: 1.0
+main: com.example.SnowBallFight
+api-version: '1.20'
+description: A snowball fight minigame for Minecraft
+commands:
+  createSpawn:
+    description: Creates a spawn point for the snowball fight
+    usage: /createSpawn
+    permission: snowballfight.admin
+  setMiddle:
+    description: Sets the middle point of the snowball fight arena
+    usage: /setMiddle
+    permission: snowballfight.admin
+  setLoserSpot:
+    description: Sets the location where losers will be teleported
+    usage: /setLoserSpot
+    permission: snowballfight.admin
+  setWinnerSpot:
+    description: Sets the location where the winner will be teleported
+    usage: /setWinnerSpot
+    permission: snowballfight.admin
+  startSnowBallFight:
+    description: Starts a snowball fight game
+    usage: /startSnowBallFight <hits-to-win>
+    permission: snowballfight.admin
+  endGame:
+    description: Ends the current snowball fight game
+    usage: /endGame
+    permission: snowballfight.admin
+  score:
+    description: Shows the current game scores
+    usage: /score
+    permission: snowballfight.player
+  gameStatus:
+    description: Shows what has been set up and what needs to be set up
+    usage: /gameStatus
+    permission: snowballfight.admin
+  resetGame:
+    description: Removes all game settings (spawn points, middle, loser/winner spots)
+    usage: /resetGame
+    permission: snowballfight.admin
+permissions:
+  snowballfight.admin:
+    description: Allows access to all SnowBallFight admin commands
+    default: op
+    children:
+      snowballfight.player: true
+  snowballfight.player:
+    description: Allows access to all SnowBallFight player commands
+    default: true
