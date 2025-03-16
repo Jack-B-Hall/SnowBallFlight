@@ -39,8 +39,16 @@ public class ScoreManager {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         scoreboard = manager.getNewScoreboard();
         
-        // Create objective for the sidebar
-        objective = scoreboard.registerNewObjective("snowballfight", "dummy", ChatColor.AQUA + "Snow Ball Fight");
+        // Create objective for the sidebar - Using empty string as criteria for updated versions
+        try {
+            // For 1.13+ servers
+            objective = scoreboard.registerNewObjective("snowballfight", "dummy", ChatColor.AQUA + "Snow Ball Fight");
+        } catch (Exception e) {
+            // Fallback for older servers (though the plugin targets 1.20.1)
+            objective = scoreboard.registerNewObjective("snowballfight", "dummy");
+            objective.setDisplayName(ChatColor.AQUA + "Snow Ball Fight");
+        }
+        
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         
         // Create team for hiding nametags
@@ -111,35 +119,70 @@ public class ScoreManager {
      * Updates the scoreboard for all players
      */
     public void updateScoreboard() {
-        // Add target score line if not already there
-        Score targetScore = objective.getScore(ChatColor.GOLD + "Target: " + ChatColor.WHITE + hitsToWin + " hits");
-        targetScore.setScore(999); // High value to keep it at the top
+        // Make sure objective is using the right display slot
+        if (objective.getDisplaySlot() != DisplaySlot.SIDEBAR) {
+            objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        }
+
+        // Clear existing scores to rebuild the scoreboard
+        for (String entry : new ArrayList<>(scoreboard.getEntries())) {
+            scoreboard.resetScores(entry);
+        }
         
-        // Add separator
-        Score separator = objective.getScore(ChatColor.GRAY + "---------------");
-        separator.setScore(997);
+        // Create a list to track entries in order
+        List<String> entries = new ArrayList<>();
+        Map<String, Integer> scores = new HashMap<>();
         
-        // Update all player scores
+        // Add target score line at the top
+        String targetLine = ChatColor.GOLD + "Target: " + ChatColor.WHITE + hitsToWin + " hits";
+        entries.add(targetLine);
+        scores.put(targetLine, 15);
+        
+        // Add separator line
+        String separatorLine = ChatColor.GRAY + "---------------";
+        entries.add(separatorLine);
+        scores.put(separatorLine, 14);
+        
+        // Get a sorted list of players by score
+        List<Player> sortedPlayers = new ArrayList<>();
         for (Player player : plugin.getServer().getOnlinePlayers()) {
+            sortedPlayers.add(player);
+        }
+        
+        // Sort in descending order
+        sortedPlayers.sort((p1, p2) -> {
+            int score1 = playerScores.getOrDefault(p1.getUniqueId(), 0);
+            int score2 = playerScores.getOrDefault(p2.getUniqueId(), 0);
+            return Integer.compare(score2, score1); // Descending order
+        });
+        
+        // Add players with scores
+        int scorePosition = 13; // Starting position after headers
+        for (Player player : sortedPlayers) {
             UUID playerId = player.getUniqueId();
-            String oldDisplayName = playerDisplayNames.get(playerId);
             
-            // Create new display name based on threat status
-            String newDisplayName;
+            // Create display name based on threat status
+            String displayName;
             if (threatPlayers.contains(playerId)) {
-                newDisplayName = ChatColor.RED + "⚠ " + ChatColor.AQUA + player.getName();
+                displayName = ChatColor.RED + "⚠ " + ChatColor.AQUA + player.getName();
             } else {
-                newDisplayName = ChatColor.AQUA + player.getName();
+                displayName = ChatColor.AQUA + player.getName();
             }
             
-            // If display name has changed, remove the old entry
-            if (oldDisplayName != null && !oldDisplayName.equals(newDisplayName)) {
-                scoreboard.resetScores(oldDisplayName);
-            }
+            // Create score display
+            String scoreEntry = displayName + ChatColor.WHITE + ": " + playerScores.getOrDefault(playerId, 0);
             
-            // Add the new entry and store the display name
-            objective.getScore(newDisplayName).setScore(playerScores.getOrDefault(playerId, 0));
-            playerDisplayNames.put(playerId, newDisplayName);
+            entries.add(scoreEntry);
+            scores.put(scoreEntry, scorePosition--);
+            playerDisplayNames.put(playerId, displayName);
+            
+            // Prevent going below 0
+            if (scorePosition < 0) break;
+        }
+        
+        // Apply all entries to scoreboard in order
+        for (String entry : entries) {
+            objective.getScore(entry).setScore(scores.get(entry));
         }
         
         // Set scoreboard for all players

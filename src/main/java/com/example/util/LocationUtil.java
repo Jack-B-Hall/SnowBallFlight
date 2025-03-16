@@ -14,12 +14,10 @@ import java.util.List;
 public class LocationUtil {
     private final JavaPlugin plugin;
     private final File spawnPointsFile;
-    private final File middlePointFile;
     private final File loserSpotFile;
     private final File winnerSpotFile;
     
     private List<Location> spawnPoints;
-    private Location middlePoint;
     private Location loserSpot;
     private Location winnerSpot;
     
@@ -28,13 +26,11 @@ public class LocationUtil {
         
         // Initialize files
         spawnPointsFile = new File(plugin.getDataFolder(), "spawnpoints.json");
-        middlePointFile = new File(plugin.getDataFolder(), "middlepoint.json");
         loserSpotFile = new File(plugin.getDataFolder(), "loserspot.json");
         winnerSpotFile = new File(plugin.getDataFolder(), "winnerspot.json");
         
         // Load locations from files
         loadSpawnPoints();
-        loadMiddlePoint();
         loadLoserSpot();
         loadWinnerSpot();
     }
@@ -52,14 +48,40 @@ public class LocationUtil {
         return spawnPoints;
     }
     
-    // Methods for middle point
-    public void setMiddlePoint(Location location) {
-        middlePoint = location;
-        saveMiddlePoint();
-    }
-    
+    /**
+     * Calculates the middle point from the spawn points
+     * Returns null if there are no spawn points
+     */
     public Location getMiddlePoint() {
-        return middlePoint;
+        if (spawnPoints == null || spawnPoints.isEmpty()) {
+            return null;
+        }
+        
+        // Initialize min/max coordinates
+        double minX = Double.MAX_VALUE;
+        double maxX = Double.MIN_VALUE;
+        double minZ = Double.MAX_VALUE;
+        double maxZ = Double.MIN_VALUE;
+        double avgY = 0;
+        
+        // Find the min/max X and Z coordinates
+        for (Location spawn : spawnPoints) {
+            minX = Math.min(minX, spawn.getX());
+            maxX = Math.max(maxX, spawn.getX());
+            minZ = Math.min(minZ, spawn.getZ());
+            maxZ = Math.max(maxZ, spawn.getZ());
+            avgY += spawn.getY();
+        }
+        
+        // Calculate average Y
+        avgY /= spawnPoints.size();
+        
+        // Middle point is average of min and max
+        double midX = (minX + maxX) / 2;
+        double midZ = (minZ + maxZ) / 2;
+        
+        // Create the middle point location in the same world as the spawn points
+        return new Location(spawnPoints.get(0).getWorld(), midX, avgY, midZ);
     }
     
     // Methods for loser spot
@@ -85,7 +107,6 @@ public class LocationUtil {
     // Check if all required locations are set
     public boolean areAllLocationsSet() {
         return spawnPoints != null && !spawnPoints.isEmpty() 
-                && middlePoint != null 
                 && loserSpot != null 
                 && winnerSpot != null;
     }
@@ -95,17 +116,15 @@ public class LocationUtil {
         try {
             // Clear in-memory locations
             spawnPoints = new ArrayList<>();
-            middlePoint = null;
             loserSpot = null;
             winnerSpot = null;
             
             // Delete files
             boolean spawnDeleted = !spawnPointsFile.exists() || spawnPointsFile.delete();
-            boolean middleDeleted = !middlePointFile.exists() || middlePointFile.delete();
             boolean loserDeleted = !loserSpotFile.exists() || loserSpotFile.delete();
             boolean winnerDeleted = !winnerSpotFile.exists() || winnerSpotFile.delete();
             
-            return spawnDeleted && middleDeleted && loserDeleted && winnerDeleted;
+            return spawnDeleted && loserDeleted && winnerDeleted;
         } catch (Exception e) {
             plugin.getLogger().severe("Error resetting locations: " + e.getMessage());
             return false;
@@ -134,22 +153,6 @@ public class LocationUtil {
             file.flush();
         } catch (IOException e) {
             plugin.getLogger().severe("Could not save spawn points: " + e.getMessage());
-        }
-    }
-    
-    @SuppressWarnings("unchecked")
-    private void saveMiddlePoint() {
-        JSONObject jsonLocation = new JSONObject();
-        jsonLocation.put("world", middlePoint.getWorld().getName());
-        jsonLocation.put("x", middlePoint.getX());
-        jsonLocation.put("y", middlePoint.getY());
-        jsonLocation.put("z", middlePoint.getZ());
-        
-        try (FileWriter file = new FileWriter(middlePointFile)) {
-            file.write(jsonLocation.toJSONString());
-            file.flush();
-        } catch (IOException e) {
-            plugin.getLogger().severe("Could not save middle point: " + e.getMessage());
         }
     }
     
@@ -217,27 +220,6 @@ public class LocationUtil {
             }
         } catch (IOException | ParseException e) {
             plugin.getLogger().severe("Could not load spawn points: " + e.getMessage());
-        }
-    }
-    
-    private void loadMiddlePoint() {
-        if (!middlePointFile.exists()) {
-            return;
-        }
-        
-        JSONParser parser = new JSONParser();
-        
-        try (FileReader reader = new FileReader(middlePointFile)) {
-            JSONObject jsonLocation = (JSONObject) parser.parse(reader);
-            
-            String worldName = (String) jsonLocation.get("world");
-            double x = (double) jsonLocation.get("x");
-            double y = (double) jsonLocation.get("y");
-            double z = (double) jsonLocation.get("z");
-            
-            middlePoint = new Location(plugin.getServer().getWorld(worldName), x, y, z);
-        } catch (IOException | ParseException e) {
-            plugin.getLogger().severe("Could not load middle point: " + e.getMessage());
         }
     }
     

@@ -8,10 +8,6 @@ commands:
     description: Creates a spawn point for the snowball fight
     usage: /createSpawn
     permission: snowballfight.admin
-  setMiddle:
-    description: Sets the middle point of the snowball fight arena
-    usage: /setMiddle
-    permission: snowballfight.admin
   setLoserSpot:
     description: Sets the location where losers will be teleported
     usage: /setLoserSpot

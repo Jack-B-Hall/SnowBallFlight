@@ -50,7 +50,6 @@ public class SnowBallFight extends JavaPlugin {
     private void registerCommands() {
         // Register setup commands
         getCommand("createSpawn").setExecutor(new CreateSpawnCommand(locationUtil));
-        getCommand("setMiddle").setExecutor(new SetMiddleCommand(locationUtil));
         getCommand("setLoserSpot").setExecutor(new SetLoserSpotCommand(locationUtil));
         getCommand("setWinnerSpot").setExecutor(new SetWinnerSpotCommand(locationUtil));
         

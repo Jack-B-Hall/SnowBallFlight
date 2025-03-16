@@ -45,8 +45,14 @@ public class StartGameCommand implements CommandExecutor {
             return false;
         }
         
-        // Calculate boundary distance automatically
+        // Ensure middle point is calculated
         Location middle = locationUtil.getMiddlePoint();
+        if (middle == null) {
+            sender.sendMessage(ChatColor.RED + "Cannot calculate middle point. Create spawn points first!");
+            return true;
+        }
+        
+        // Calculate boundary distance automatically
         List<Location> spawnPoints = locationUtil.getSpawnPoints();
         
         double maxDistance = 0;
@@ -63,6 +69,12 @@ public class StartGameCommand implements CommandExecutor {
         
         // Set boundary to furthest spawn point + 20 blocks for safety
         double boundaryDistance = maxDistance + 20;
+        
+        // Display information about middle point
+        sender.sendMessage(ChatColor.YELLOW + "Using automatically calculated middle point at " + 
+                     ChatColor.WHITE + "(" + Math.round(middle.getX()) + ", " + 
+                     Math.round(middle.getY()) + ", " + 
+                     Math.round(middle.getZ()) + ")");
         
         // All validation passed, start the game
         gameManager.startGame(hitsToWin, boundaryDistance);
@@ -83,12 +95,6 @@ public class StartGameCommand implements CommandExecutor {
         // Check if a game is already active
         if (gameManager.isGameActive()) {
             sender.sendMessage(ChatColor.RED + "A game is already in progress! Use /endGame to end it.");
-            return false;
-        }
-        
-        // Check if middle point is set
-        if (locationUtil.getMiddlePoint() == null) {
-            sender.sendMessage(ChatColor.RED + "Middle point not set! Use /setMiddle to set it.");
             return false;
         }
         

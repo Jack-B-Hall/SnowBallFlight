@@ -40,38 +40,38 @@ public class GameStatusCommand implements CommandExecutor {
                               spawnPoints.size() + "/" + playerCount + " (Need at least one per player)");
         } else {
             sender.sendMessage(ChatColor.GREEN + "✓ Spawn Points: " + ChatColor.WHITE + spawnPoints.size() + " points set");
-            
-            // Calculate recommended boundary distance if middle point is set
-            Location middle = locationUtil.getMiddlePoint();
-            if (middle != null) {
-                double maxDistance = 0;
-                for (Location spawn : spawnPoints) {
-                    // Only consider X and Z for the distance calculation
-                    double dx = spawn.getX() - middle.getX();
-                    double dz = spawn.getZ() - middle.getZ();
-                    double distance = Math.sqrt(dx * dx + dz * dz);
-                    
-                    if (distance > maxDistance) {
-                        maxDistance = distance;
-                    }
-                }
-                
-                // Minimum boundary is furthest spawn point + 10 blocks
-                int minimumBoundary = (int) Math.ceil(maxDistance + 10);
-                sender.sendMessage(ChatColor.YELLOW + "ℹ Boundary distance: " + ChatColor.WHITE + 
-                                  minimumBoundary + "+ blocks (based on furthest spawn point)");
-            }
         }
         
-        // Check middle point
-        if (locationUtil.getMiddlePoint() == null) {
-            sender.sendMessage(ChatColor.RED + "✗ Middle Point: " + ChatColor.WHITE + "Not set. Use /setMiddle to set the middle point.");
+        // Check middle point (calculated)
+        Location middle = locationUtil.getMiddlePoint();
+        
+        if (middle == null) {
+            sender.sendMessage(ChatColor.RED + "✗ Middle Point: " + ChatColor.WHITE + 
+                             "Cannot be calculated. Add spawn points first.");
         } else {
-            Location middle = locationUtil.getMiddlePoint();
             sender.sendMessage(ChatColor.GREEN + "✓ Middle Point: " + ChatColor.WHITE + 
-                              "(" + Math.round(middle.getX()) + ", " + 
-                              Math.round(middle.getY()) + ", " + 
-                              Math.round(middle.getZ()) + ")");
+                             "Automatically calculated at (" + 
+                             Math.round(middle.getX()) + ", " + 
+                             Math.round(middle.getY()) + ", " + 
+                             Math.round(middle.getZ()) + ")");
+            
+            // Calculate recommended boundary distance if middle point is available
+            double maxDistance = 0;
+            for (Location spawn : spawnPoints) {
+                // Only consider X and Z for the distance calculation
+                double dx = spawn.getX() - middle.getX();
+                double dz = spawn.getZ() - middle.getZ();
+                double distance = Math.sqrt(dx * dx + dz * dz);
+                
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                }
+            }
+            
+            // Minimum boundary is furthest spawn point + 10 blocks
+            int minimumBoundary = (int) Math.ceil(maxDistance + 10);
+            sender.sendMessage(ChatColor.YELLOW + "ℹ Boundary distance: " + ChatColor.WHITE + 
+                             minimumBoundary + "+ blocks (based on furthest spawn point)");
         }
         
         // Check loser spot
@@ -97,10 +97,13 @@ public class GameStatusCommand implements CommandExecutor {
         }
         
         // Overall status
-        boolean allLocationsSet = locationUtil.areAllLocationsSet();
+        boolean spawnPointsSet = spawnPoints != null && !spawnPoints.isEmpty();
+        boolean middlePointAvailable = middle != null;
+        boolean loserSpotSet = locationUtil.getLoserSpot() != null;
+        boolean winnerSpotSet = locationUtil.getWinnerSpot() != null;
         boolean enoughPlayers = playerCount >= 2;
         boolean enoughSpawnPoints = spawnPoints != null && spawnPoints.size() >= playerCount;
-        boolean readyToStart = allLocationsSet && enoughPlayers && enoughSpawnPoints;
+        boolean readyToStart = spawnPointsSet && middlePointAvailable && loserSpotSet && winnerSpotSet && enoughPlayers && enoughSpawnPoints;
         
         sender.sendMessage("");
         if (readyToStart) {
